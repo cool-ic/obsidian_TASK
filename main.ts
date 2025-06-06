@@ -37,7 +37,8 @@ export class TaskReportView extends ItemView {
     // Sorting state properties
     private sortColumn: keyof TaskItem | null = null; // Column key currently used for sorting.
     private sortDirection: 'asc' | 'desc' = 'asc'; // Current sort direction.
-    private showHiddenTasks: boolean = false; // NEW property
+    private showHiddenTasks: boolean = false;
+    private overdueReferenceDateEl: HTMLElement; // NEW property
 
     /**
      * Constructs the TaskReportView.
@@ -81,6 +82,12 @@ export class TaskReportView extends ItemView {
     async onOpen() {
         this.contentEl.empty();
         this.contentEl.createEl("h2", { text: TASK_REPORT_DISPLAY_TEXT });
+
+        // NEW: Display for overdue calculation reference date
+        this.overdueReferenceDateEl = this.contentEl.createDiv({ cls: "task-manager-reference-date" });
+        this.overdueReferenceDateEl.style.fontSize = "var(--font-ui-smaller)"; // Use Obsidian variable for font size
+        this.overdueReferenceDateEl.style.color = "var(--text-muted)";
+        this.overdueReferenceDateEl.style.marginBottom = "10px";
 
         // Filter Controls Container
         const filterControlsContainer = this.contentEl.createDiv({ cls: "task-manager-filter-controls" });
@@ -273,6 +280,17 @@ export class TaskReportView extends ItemView {
      * This is the primary method for initially loading or refreshing task data.
      */
     async loadAndDisplayTasks() {
+        // NEW: Update reference date display
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        if (this.overdueReferenceDateEl) { // Ensure element exists
+            this.overdueReferenceDateEl.setText(`Reference date for overdue calculation: ${formattedDate}`);
+        }
+
         this.tasks = []; // Clear the master list before reloading
         const markdownFiles = this.app.vault.getMarkdownFiles();
 
