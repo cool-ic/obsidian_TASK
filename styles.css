@@ -1,0 +1,17 @@
+/* Plugin specific styles will go here */
+.task-manager-report-view {
+    padding: 10px;
+}
+.task-manager-report-view table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.task-manager-report-view th,
+.task-manager-report-view td {
+    border: 1px solid var(--background-modifier-border);
+    padding: 8px;
+    text-align: left;
+}
+.task-manager-report-view th {
+    background-color: var(--background-secondary);
+}
