@@ -33,3 +33,16 @@
     color: var(--text-normal); // Try to use theme's normal text color
 }
 */
+
+/* Style for pending (incomplete) but not overdue task rows */
+.task-manager-report-view tr.task-pending-not-overdue td {
+    background-color: #DFF0D8; /* A light, pleasant green */
+}
+
+/* Optional: If text readability on this green needs adjustment, similar to overdue */
+/*
+.task-manager-report-view tr.task-pending-not-overdue td,
+.task-manager-report-view tr.task-pending-not-overdue td a {
+    color: #3C763D; // Darker green text, adjust as needed
+}
+*/

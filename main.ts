@@ -364,42 +364,43 @@ export class TaskReportView extends ItemView {
         for (const task of this.displayedTasks) {
             const row = tbody.insertRow();
 
-            // Status Cell
-            const statusCell = row.insertCell();
-            statusCell.empty(); // Clear any previous content (like text)
-            const statusCheckbox = statusCell.createEl('input', { type: 'checkbox' });
-            statusCheckbox.checked = task.isCompleted;
-            // statusCheckbox.disabled = true; // REMOVE THIS LINE
+            // --- MODIFIED Row Styling Logic ---
+            row.removeClass('task-overdue');
+            row.removeClass('task-pending-not-overdue');
 
-            // ADD event listener:
-            statusCheckbox.onchange = async () => {
-                await this.handleTaskUpdate(task.id, 'isCompleted', statusCheckbox.checked);
-            };
-
-            // --- NEW "Overdue" Cell and Logic ---
-            const overdueCell = row.insertCell();
-            let isOverdue = false;
-
-            if (task.dueDate && !task.isCompleted) {
+            let isOverdue = false; // Calculate once for use in "Overdue" cell text and row styling
+            if (!task.isCompleted && task.dueDate) {
                 const today = new Date();
-                today.setHours(0, 0, 0, 0); // Normalize today to midnight for date-only comparison
-
-                // Parse YYYY-MM-DD as local time midnight.
+                today.setHours(0, 0, 0, 0);
                 const dueDateObj = new Date(task.dueDate + "T00:00:00");
-
                 if (dueDateObj < today) {
                     isOverdue = true;
                 }
             }
 
-            overdueCell.setText(isOverdue ? "Y" : "N");
-
-            if (isOverdue) {
-                row.addClass('task-overdue');
-            } else {
-                row.removeClass('task-overdue'); // Ensure class is removed if not overdue
+            // Apply styling based on isCompleted and isOverdue
+            if (task.isCompleted) {
+                // No special background for completed tasks
+            } else if (isOverdue) {
+                row.addClass('task-overdue'); // Apply light red
+            } else { // Not completed and not overdue
+                row.addClass('task-pending-not-overdue'); // Apply light green
             }
-            // --- End of "Overdue" Cell and Logic ---
+            // --- End of MODIFIED Row Styling Logic ---
+
+            // Status Cell
+            const statusCell = row.insertCell();
+            statusCell.empty(); // Clear any previous content (like text)
+            const statusCheckbox = statusCell.createEl('input', { type: 'checkbox' });
+            statusCheckbox.checked = task.isCompleted;
+
+            statusCheckbox.onchange = async () => {
+                await this.handleTaskUpdate(task.id, 'isCompleted', statusCheckbox.checked);
+            };
+
+            // "Overdue" Text Cell (uses the 'isOverdue' variable calculated above)
+            const overdueCell = row.insertCell();
+            overdueCell.setText(isOverdue ? "Y" : "N");
 
             // Summary (existing description) Cell - Editable
             const summaryCell = row.insertCell();
