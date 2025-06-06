@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-task-manager",
+    "name": "Task Manager",
+    "version": "0.1.0",
+    "minAppVersion": "0.15.0",
+    "description": "A plugin to manage tasks with due dates, priorities, and completion status.",
+    "author": "AI Assistant",
+    "authorUrl": "",
+    "isDesktopOnly": false
+}
