@@ -319,8 +319,14 @@ export class TaskReportView extends ItemView {
             // ... (row creation and cell population logic remains the same)
             // This part doesn't change as displayedTasks is already sorted.
             const row = tbody.insertRow();
-            row.insertCell().setText(task.description);
-            row.insertCell().setText(task.dueDate || "-");
+
+            // Description Cell - Make it editable
+            const descriptionCell = row.insertCell();
+            this.createEditableDescriptionCell(descriptionCell, task);
+
+            // DueDate Cell - Make it editable
+            const dueDateCell = row.insertCell();
+            this.createEditableDueDateCell(dueDateCell, task);
 
             // Priority Cell - Make it editable
             const priorityCell = row.insertCell();
@@ -428,7 +434,7 @@ export class TaskReportView extends ItemView {
      * @param updatedField The field that was changed ('priority' or 'completion').
      * @param newValue The new value for the field.
      */
-    async handleTaskUpdate(taskId: string, updatedField: 'priority' | 'completion', newValue: any) {
+    async handleTaskUpdate(taskId: string, updatedField: 'priority' | 'completion' | 'dueDate' | 'description', newValue: any) {
         const task = this.tasks.find(t => t.id === taskId); // Find task from master list
         if (!task) {
             new Notice("Error: Task not found for update.");
@@ -449,6 +455,99 @@ export class TaskReportView extends ItemView {
         }
         // Full refresh from source to ensure data integrity and reflect changes
         await this.loadAndDisplayTasks();
+    }
+
+    /**
+     * Creates an editable description cell for a task in the table.
+     * Displays description as text, converting to a text input on click for editing.
+     * @param cell The HTMLTableCellElement to populate.
+     * @param task The TaskItem associated with this row.
+     */
+    private createEditableDescriptionCell(cell: HTMLElement, task: TaskItem) {
+        cell.empty();
+        const displayEl = cell.createSpan({ text: task.description });
+        displayEl.style.cursor = "pointer";
+
+        displayEl.onclick = () => {
+            cell.empty();
+            const inputEl = cell.createEl("input", { type: "text" });
+            inputEl.value = task.description;
+            inputEl.style.width = "90%"; // Allow space for other elements if any, or make it 100% of cell
+
+            const saveValue = async () => {
+                const newDescription = inputEl.value.trim();
+                if (newDescription === "") {
+                    new Notice("Description cannot be empty.");
+                    this.createEditableDescriptionCell(cell, task); // Revert
+                    return;
+                }
+                if (newDescription === task.description) { // No change
+                    this.createEditableDescriptionCell(cell, task); // Revert to display mode
+                    return;
+                }
+                await this.handleTaskUpdate(task.id, 'description', newDescription);
+            };
+
+            inputEl.onblur = saveValue;
+            inputEl.onkeydown = (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveValue();
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    this.createEditableDescriptionCell(cell, task); // Revert
+                }
+            };
+            inputEl.focus();
+            inputEl.select();
+        };
+    }
+
+    /**
+     * Creates an editable due date cell for a task in the table.
+     * Displays due date as text, converting to a text input on click for editing.
+     * @param cell The HTMLTableCellElement to populate.
+     * @param task The TaskItem associated with this row.
+     */
+    private createEditableDueDateCell(cell: HTMLElement, task: TaskItem) {
+        cell.empty();
+        const currentDueDate = task.dueDate || "-";
+        const displayEl = cell.createSpan({ text: currentDueDate });
+        displayEl.style.cursor = "pointer";
+
+        displayEl.onclick = () => {
+            cell.empty();
+            const inputEl = cell.createEl("input", { type: "text" });
+            inputEl.placeholder = "YYYY-MM-DD";
+            inputEl.value = task.dueDate || ""; // Use empty string if undefined for the input field
+            inputEl.style.width = "100px";
+
+            const saveValue = async () => {
+                let newDueDate = inputEl.value.trim();
+                // Basic validation: allow empty or a pattern that looks like a date.
+                // More robust validation could be added (e.g. using a library or regex)
+                if (newDueDate && !/^\d{4}-\d{2}-\d{2}$/.test(newDueDate)) {
+                    new Notice("Invalid date format. Please use YYYY-MM-DD or leave empty.");
+                    // Re-render the original text without saving if format is wrong and not empty
+                    this.createEditableDueDateCell(cell, task);
+                    return;
+                }
+                await this.handleTaskUpdate(task.id, 'dueDate', newDueDate === "" ? null : newDueDate); // Pass null to signify removal
+            };
+
+            inputEl.onblur = saveValue;
+            inputEl.onkeydown = (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveValue();
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    this.createEditableDueDateCell(cell, task); // Revert
+                }
+            };
+            inputEl.focus();
+            inputEl.select();
+        };
     }
 }
 
@@ -788,7 +887,7 @@ export default class MyTaskPlugin extends Plugin {
      * @throws Error if the file is not found, the line number is out of bounds,
      *               the task marker is not found, or JSON parsing/stringifying fails.
      */
-    async updateTaskInFile(taskToUpdate: TaskItem, updatedField: 'priority' | 'completion', newValue: any) {
+    async updateTaskInFile(taskToUpdate: TaskItem, updatedField: 'priority' | 'completion' | 'dueDate' | 'description', newValue: any) {
         const file = this.app.vault.getAbstractFileByPath(taskToUpdate.filePath);
         if (!(file instanceof TFile)) { // Ensure it's a file and not a folder
             console.error("File not found or is not a TFile:", taskToUpdate.filePath);
@@ -826,24 +925,51 @@ export default class MyTaskPlugin extends Plugin {
             throw new Error("Could not parse existing task data from file.");
         }
 
-        // Update only the specified field in the parsed data
-        taskData[updatedField] = newValue;
+        // Update the specific field
+        if (updatedField === 'dueDate') {
+            if (newValue === null || newValue === "") { // If new value is null or empty string, remove the key
+                delete taskData.dueDate;
+            } else {
+                taskData.dueDate = newValue; // newValue should be YYYY-MM-DD string
+            }
+        } else if (updatedField === 'priority' || updatedField === 'completion') { // Keep existing logic for these
+             taskData[updatedField] = newValue;
+        }
+        // else: handle description in the next plan step / subtask
 
         // Ensure fields that might be undefined are handled correctly (e.g., not stringified as "undefined")
         // This is particularly important if other optional fields are added later.
-        if (taskData.dueDate === undefined) {
-            delete taskData.dueDate; // Remove from object if undefined to keep JSON clean
+        // Example: if (taskData.someOtherOptionalField === undefined) { delete taskData.someOtherOptionalField; }
+
+        let newLine = "";
+
+        if (updatedField === 'description') {
+            const newDescription = String(newValue).trim();
+            if (!newDescription) {
+                throw new Error("Description cannot be empty.");
+            }
+
+            const checkboxRegex = /^(\s*-\s*\[[x ]\]\s*)/;
+            const checkboxMatch = originalLine.match(checkboxRegex); // Use originalLine here as currentLine might be descriptionPart
+            const checkboxPart = checkboxMatch ? checkboxMatch[1] : "- [ ] ";
+
+            const markerIdx = originalLine.indexOf(TASK_MARKER); // find marker in original line
+            if (markerIdx === -1) {
+                throw new Error("Task marker not found in the line. Cannot update description.");
+            }
+            const markerPart = originalLine.substring(markerIdx);
+
+            newLine = `${checkboxPart}${newDescription} ${markerPart}`;
+
+        } else { // Handles 'priority', 'completion', 'dueDate'
+            // Reconstruct the new JSON string and the new full task line
+            const newJsonDataString = JSON.stringify(taskData);
+            // Ensure there's a space before the task marker if the description part is not empty.
+            const newMarkerPart = `${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
+            newLine = descriptionPart.trimRight().length > 0
+                ? `${descriptionPart.trimRight()} ${newMarkerPart}`
+                : newMarkerPart; // Handles cases where task might start with marker (though current parsing assumes it doesn't)
         }
-        // Add similar checks for other optional fields if they exist.
-
-        // Reconstruct the new JSON string and the new full task line
-        const newJsonDataString = JSON.stringify(taskData);
-        // Ensure there's a space before the task marker if the description part is not empty.
-        const newMarkerPart = `${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
-        const newLine = descriptionPart.trimRight().length > 0
-            ? `${descriptionPart.trimRight()} ${newMarkerPart}`
-            : newMarkerPart; // Handles cases where task might start with marker (though current parsing assumes it doesn't)
-
 
         lines[taskToUpdate.lineNumber] = newLine; // Replace the old line with the new one
         await this.app.vault.modify(file, lines.join('\n')); // Write the modified content back to the file
