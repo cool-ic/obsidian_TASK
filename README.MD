@@ -132,16 +132,6 @@
     *   如果处于限制模式，请关闭它。
     *   在已安装插件列表中找到 "Task Manager" 并启用它。
 
-### 其他 Makefile 目标
-
-*   **`make dev`**: 以观察模式启动 TypeScript 编译器。当您保存更改时，它将自动重新编译 `main.ts`。
-*   **`make clean`**: 从项目根目录中删除已编译的 JavaScript 文件 (`main.js`, `main.js.map`)。
-
-## 未来增强 (潜在)
-
-*   更健壮的任务 ID (例如 UUID)，以更好地处理手动文件编辑。
-*   甘特图视图。
-*   任务依赖关系。
 
 ---
 ## English Version
@@ -274,17 +264,3 @@ Where:
     *   Go to `Settings` -> `Community plugins`.
     *   If you have restricted mode on, turn it off.
     *   Find "Task Manager" in the list of installed plugins and enable it.
-
-### Other Makefile Targets
-
-*   **`make dev`**: Starts the TypeScript compiler in watch mode. It will automatically recompile `main.ts` when you save changes.
-*   **`make clean`**: Removes compiled JavaScript files (`main.js`, `main.js.map`) from the project root.
-
-## Future Enhancements (Potential)
-
-*   More robust task IDs (e.g., UUIDs) to better handle manual file edits.
-*   Gantt chart view.
-*   Task dependencies.
-
----
-This README provides a good overview for users and developers.
