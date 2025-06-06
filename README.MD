@@ -5,14 +5,20 @@ This plugin provides enhanced task management capabilities within Obsidian, allo
 ## Features
 
 *   **Embeddable Tasks:** Define tasks anywhere in your markdown notes using a special syntax.
-*   **Task Metadata:** Assign due dates, priority (High, Medium, Low), and completion percentage to your tasks.
-*   **Task Insertion Command:** Easily insert new tasks using a command and a user-friendly modal.
+*   **Task Metadata:** Assign due dates, priority (High, Medium, Low), hidden status, and a detailed multi-line description to your tasks.
+*   **Completion Status:** Task completion is managed directly via the markdown checkbox (`- [ ]` or `- [x]`).
+*   **Task Insertion Command:** Easily insert new tasks (including summary, due date, priority, detailed description, and hidden status) using a command and a user-friendly modal.
 *   **Interactive Task Report:**
     *   View all tasks from your vault in a single, sortable, and filterable table.
-    *   **Columns:** Description, Due Date, Priority, Completion (%), File.
+    *   **Columns:** Status (checkbox), Summary, Detailed Description, Due Date, Priority, Hidden, File.
     *   **Clickable File Links:** Navigate directly to the task in its source file.
-    *   **Inline Editing:** Modify task priority and completion directly from the report. Changes are saved back to the markdown file.
-    *   **Filtering:** Filter tasks by keyword, priority, file path, and completion status.
+    *   **Inline Editing:**
+        *   Toggle task completion status using the checkbox in the "Status" column.
+        *   Edit task summary (description), due date, and priority directly from the report.
+        *   Toggle the "Hidden" status.
+        *   Edit the "Detailed Description" in a multi-line text area.
+        *   Changes are saved back to the source markdown file.
+    *   **Filtering:** Filter tasks by keyword (in summary), priority, file path, completion status (Done/Pending), and visibility of hidden tasks.
     *   **Sorting:** Sort tasks by any column.
 *   **Makefile for Development:** Includes `build`, `install`, and `dev` targets.
 
@@ -22,27 +28,30 @@ This plugin provides enhanced task management capabilities within Obsidian, allo
 
 You can define a task in any markdown note using the following format:
 
-```markdown
-- [ ] Your task description %%task-plugin:{"dueDate":"YYYY-MM-DD", "priority":N, "completion":P}%%
-```
+\`\`\`markdown
+- [ ] Your task summary %%task-plugin:{"dueDate":"YYYY-MM-DD", "priority":N, "hidden":false, "detailedDescription":"More details..."}%%
+\`\`\`
 
 Where:
-*   `- [ ]` is the standard markdown task syntax (can also be `- [x]` for pre-completed).
-*   `Your task description` is the text of your task.
+*   `- [ ]` or `- [x]` is the standard markdown task syntax, directly indicating if the task is pending or completed.
+*   `Your task summary` is the main, concise description of the task.
 *   `%%task-plugin:{...}%%` is the special marker for this plugin's task data. The content within the curly braces `{}` should be valid JSON.
 *   `"dueDate":"YYYY-MM-DD"` (JSON property, Optional): The due date for the task. E.g., `"dueDate":"2024-12-31"`.
-*   `"priority":N` (JSON property, Optional, defaults to Medium when not specified): Priority of the task.
+*   `"priority":N` (JSON property, Optional, defaults to Medium [2] when not specified): Priority of the task.
     *   `1`: High
     *   `2`: Medium
     *   `3`: Low
-*   `"completion":P` (JSON property, Optional, defaults to 0 when not specified): Completion percentage (0-100). E.g., `"completion":50`.
+*   `"hidden":boolean` (JSON property, Optional, defaults to `false` when not specified): Set to `true` to mark the task as hidden (e.g., `"hidden":true`). It can be omitted for non-hidden tasks.
+*   `"detailedDescription":"text"` (JSON property, Optional, defaults to empty when not specified): For longer, multi-line notes about the task (e.g., `"detailedDescription":"Further notes and context."`).
 
 **Example:**
-```markdown
-- [ ] Finalize project proposal %%task-plugin:{"dueDate":"2024-08-15", "priority":1, "completion":25}%%
-- [ ] Buy groceries %%task-plugin:{"priority":2, "completion":0}%%
-- [x] Send initial email %%task-plugin:{"completion":100}%%
-```
+\`\`\`markdown
+- [x] Project Alpha setup %%task-plugin:{"dueDate":"2024-07-01", "priority":1, "detailedDescription":"Initial server configuration and repo creation."}%%
+- [ ] Weekly review %%task-plugin:{"priority":2, "hidden":true}%%
+- [ ] Follow up with Jane %%task-plugin:{"dueDate":"2024-07-05", "detailedDescription":"Discuss Q3 budget."}%%
+- [ ] Simple task with no extra metadata
+\`\`\`
+(Note: `hidden:false` and empty `detailedDescription` can be omitted from the JSON for brevity as they are defaults.)
 
 ### 2. Inserting Tasks via Command
 
@@ -56,30 +65,35 @@ Where:
 1.  Open the Task Report:
     *   Click the "Task Report" icon (looks like a checklist) in the left ribbon.
     *   Or, execute the "Task Manager: Open Task Report" command from the command palette.
-2.  The report view will display all tasks found in your vault.
+2.  The report view will display all tasks found in your vault. The columns are: "Status", "Summary", "Detailed Desc.", "Due Date", "Priority", "Hidden", and "File".
 3.  **Interacting with the Report:**
     *   **Navigation:** Click on a file path in the "File" column to open the note containing that task, scrolled to the relevant line.
-    *   **Editing Priority:** Click on a task's priority in the table. A dropdown will appear. Select the new priority. The change is saved automatically to the source file.
-    *   **Editing Completion:** Click on a task's completion percentage. An input field will appear. Enter the new percentage (0-100) and press Enter or click away. The change is saved automatically.
+    *   **Toggle Status:** Click the checkbox in the "Status" column to mark a task as done (`- [x]`) or pending (`- [ ]`). The change is saved automatically to the source file.
+    *   **Editing Summary:** Click on the text in the "Summary" column. An input field will appear. Edit the summary and press Enter or click away to save.
+    *   **Editing Detailed Description:** Click on the text in the "Detailed Desc." column. A multi-line textarea will appear. Edit the details and press Enter (without Shift) or click away to save. Use Shift+Enter for newlines within the description.
+    *   **Editing Due Date:** Click on the date in the "Due Date" column. An input field will appear. Enter the new date (YYYY-MM-DD) or clear it, then press Enter or click away.
+    *   **Editing Priority:** Click on a task's priority in the "Priority" column. A dropdown will appear. Select the new priority. The change is saved automatically.
+    *   **Toggle Hidden:** Click on "Yes" or "No" in the "Hidden" column to toggle the task's hidden status. The change is saved automatically.
     *   **Filtering:** Use the input fields and dropdowns above the table to filter tasks by:
-        *   Keyword in description
+        *   Keyword in summary
         *   Priority
         *   Substring in file path
-        *   Completion status (Not Started, In Progress, Completed)
-    *   **Sorting:** Click on any column header (e.g., "Due Date", "Priority") to sort the tasks by that column. Click again to toggle between ascending and descending order.
-    *   **Refresh:** Click the "Refresh All Tasks" button to re-scan your vault for tasks.
+        *   Completion status (Done/Pending - based on the checkbox)
+    *   **Show Hidden Tasks Toggle:** Use the "Show Hidden" toggle above the table to include or exclude tasks marked as "hidden" from the current view.
+    *   **Sorting:** Click on any column header (e.g., "Due Date", "Priority", "Status") to sort the tasks by that column. Click again to toggle between ascending and descending order.
+    *   **Refresh:** Click the "Refresh All Tasks" button to re-scan your vault for tasks and update the report.
 
 ## Installation and Development (Using Makefile)
 
 1.  **Clone the Repository:**
-    ```bash
+    \`\`\`bash
     git clone <repository-url>
     cd obsidian-task-manager
-    ```
+    \`\`\`
 2.  **Install Dependencies:**
-    ```bash
+    \`\`\`bash
     npm install
-    ```
+    \`\`\`
 3.  **Configure Vault Path:**
     *   Open the `Makefile` in a text editor.
     *   Locate the line `OBSIDIAN_VAULT_PATH :=`.
@@ -88,13 +102,13 @@ Where:
         *   Example (Windows): `OBSIDIAN_VAULT_PATH := C:/Users/yourname/Documents/MyVault` (use forward slashes)
 4.  **Build and Install:**
     *   To build the plugin:
-        ```bash
+        \`\`\`bash
         make build
-        ```
+        \`\`\`
     *   To build and install into your configured vault:
-        ```bash
+        \`\`\`bash
         make install
-        ```
+        \`\`\`
 5.  **Enable in Obsidian:**
     *   Open Obsidian.
     *   Go to `Settings` -> `Community plugins`.

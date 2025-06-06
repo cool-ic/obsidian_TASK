@@ -37,6 +37,7 @@ export class TaskReportView extends ItemView {
     // Sorting state properties
     private sortColumn: keyof TaskItem | null = null; // Column key currently used for sorting.
     private sortDirection: 'asc' | 'desc' = 'asc'; // Current sort direction.
+    private showHiddenTasks: boolean = false; // NEW property
 
     /**
      * Constructs the TaskReportView.
@@ -132,6 +133,20 @@ export class TaskReportView extends ItemView {
             this.applyFiltersAndRender();
         };
 
+        // NEW: Toggle for showing hidden tasks
+        const showHiddenFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
+        new Setting(showHiddenFilterGroup)
+            .setName("Show Hidden") // Shortened name for better fit
+            // .setDesc("Toggle to display tasks marked as hidden.") // Description can be verbose, consider removing for space
+            .addToggle(toggle => {
+                toggle.setValue(this.showHiddenTasks)
+                    .onChange(value => {
+                        this.showHiddenTasks = value;
+                        this.applyFiltersAndRender();
+                    });
+            });
+        showHiddenFilterGroup.style.alignItems = "center"; // Align toggle nicely with a potential label if Setting didn't have one
+
 
         const refreshButton = this.contentEl.createEl("button", { text: "Refresh All Tasks" });
         refreshButton.style.marginTop = "5px"; // Add some space if filters wrap
@@ -170,18 +185,22 @@ export class TaskReportView extends ItemView {
             const priorityMatch = this.filterPriority === "all" || String(task.priority) === this.filterPriority;
             const filePathMatch = !this.filterFilePath || task.filePath.toLowerCase().includes(this.filterFilePath);
 
-            let completionMatch = false;
+            let completionStatusMatch = false;
             if (this.filterCompletion === "all") {
-                completionMatch = true;
-            } else if (this.filterCompletion === "notStarted" && task.completion === 0) {
-                completionMatch = true;
-            } else if (this.filterCompletion === "inProgress" && task.completion > 0 && task.completion < 100) {
-                completionMatch = true;
-            } else if (this.filterCompletion === "completed" && task.completion === 100) {
-                completionMatch = true;
+                completionStatusMatch = true;
+            } else if (this.filterCompletion === "notStarted" && !task.isCompleted) { // Adjusted for isCompleted
+                completionStatusMatch = true;
+            } else if (this.filterCompletion === "inProgress") {
+                // "In Progress" is mapped to "not completed"
+                completionStatusMatch = !task.isCompleted;
+            } else if (this.filterCompletion === "completed" && task.isCompleted) { // Adjusted for isCompleted
+                completionStatusMatch = true;
             }
 
-            return keywordMatch && priorityMatch && filePathMatch && completionMatch;
+            // NEW: Filter for hidden tasks
+            const hiddenMatch = this.showHiddenTasks || !task.hidden; // If showHidden is true, always match. Otherwise, only match if task is not hidden.
+
+            return keywordMatch && priorityMatch && filePathMatch && completionStatusMatch && hiddenMatch; // Added hiddenMatch
         });
         // After filtering, sort the results before rendering.
         this.sortAndRenderTasks();
@@ -296,47 +315,124 @@ export class TaskReportView extends ItemView {
 
         // Helper function to create sortable table headers.
         // Adds click listeners and visual indicators for sorting.
-        const createSortableHeader = (text: string, key: keyof TaskItem) => {
+        const createSortableHeader = (text: string, key: keyof TaskItem | 'status') => { // Allow 'status' for sorting later
             const th = headerRow.insertCell();
             th.setText(text);
             th.style.cursor = "pointer"; // Indicate clickable header
-            if (this.sortColumn === key) {
+            // Casting key for TaskItem access, handle 'status' separately if it's not a direct key
+            const sortKey = key === 'status' ? 'isCompleted' : key;
+            if (this.sortColumn === sortKey) {
                 // Add class for styling sorted column and append sort direction indicator
                 th.addClass(this.sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
                 th.setText(`${text} ${this.sortDirection === 'asc' ? '▲' : '▼'}`);
             }
-            th.onclick = () => this.handleSortRequest(key); // Set click handler
+            th.onclick = () => this.handleSortRequest(sortKey as keyof TaskItem); // Cast needed
         };
 
         // Create all table headers
-        createSortableHeader("Description", "description");
+        createSortableHeader("Status", "isCompleted"); // Sorts by isCompleted
+        createSortableHeader("Summary", "description");
+        createSortableHeader("Detailed Desc.", "detailedDescription");
         createSortableHeader("Due Date", "dueDate");
         createSortableHeader("Priority", "priority");
-        createSortableHeader("Completion (%)", "completion");
+        createSortableHeader("Hidden", "hidden");
         createSortableHeader("File", "filePath");
 
         // Table Body: Iterates over `this.displayedTasks` (which are already filtered and sorted).
         const tbody = table.createTBody();
         for (const task of this.displayedTasks) {
-            // ... (row creation and cell population logic remains the same)
-            // This part doesn't change as displayedTasks is already sorted.
             const row = tbody.insertRow();
 
-            // Description Cell - Make it editable
-            const descriptionCell = row.insertCell();
-            this.createEditableDescriptionCell(descriptionCell, task);
+            // Status Cell
+            const statusCell = row.insertCell();
+            statusCell.empty(); // Clear any previous content (like text)
+            const statusCheckbox = statusCell.createEl('input', { type: 'checkbox' });
+            statusCheckbox.checked = task.isCompleted;
+            // statusCheckbox.disabled = true; // REMOVE THIS LINE
 
-            // DueDate Cell - Make it editable
+            // ADD event listener:
+            statusCheckbox.onchange = async () => {
+                await this.handleTaskUpdate(task.id, 'isCompleted', statusCheckbox.checked);
+            };
+
+            // Summary (existing description) Cell - Editable
+            const summaryCell = row.insertCell();
+            this.createEditableDescriptionCell(summaryCell, task);
+
+            // Detailed Description Cell - Make it interactive
+            const detailedDescCell = row.insertCell();
+            detailedDescCell.empty(); // Clear previous content
+
+            const displayFullDescription = () => {
+                detailedDescCell.empty();
+                const DDescLength = 50; // Max length for preview
+                const previewText = task.detailedDescription.substring(0, DDescLength) +
+                                    (task.detailedDescription.length > DDescLength ? "..." : "");
+
+                const textSpan = detailedDescCell.createSpan({ text: previewText || "-" }); // Show "-" if empty
+                textSpan.title = task.detailedDescription || "Click to add detailed description";
+                textSpan.style.cursor = "pointer";
+
+                textSpan.onclick = () => {
+                    detailedDescCell.empty();
+                    const textArea = detailedDescCell.createEl('textarea');
+                    textArea.value = task.detailedDescription;
+                    textArea.style.width = "95%"; // Adjust as needed
+                    textArea.style.minHeight = "60px";
+                    textArea.rows = 3; // Initial rows
+
+                    const saveValue = async () => {
+                        const newDesc = textArea.value; // No trim, allow leading/trailing spaces if user wants
+                        if (newDesc !== task.detailedDescription) {
+                             await this.handleTaskUpdate(task.id, 'detailedDescription', newDesc);
+                        } else {
+                            // If no change, revert to display mode without saving or full refresh
+                            displayFullDescription();
+                        }
+                        // Note: handleTaskUpdate will trigger a full refresh, which re-calls displayFullDescription
+                    };
+
+                    textArea.onblur = () => {
+                        // A short delay to allow click on a potential save button if added later
+                        // For now, direct save on blur.
+                        saveValue();
+                    };
+
+                    textArea.onkeydown = (e) => {
+                        // Allow Shift+Enter for newlines in textarea
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            saveValue();
+                        } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            displayFullDescription(); // Revert to display
+                        }
+                    };
+                    textArea.focus();
+                };
+            };
+
+            displayFullDescription(); // Initial render of the cell
+
+            // DueDate Cell - Editable
             const dueDateCell = row.insertCell();
             this.createEditableDueDateCell(dueDateCell, task);
 
-            // Priority Cell - Make it editable
+            // Priority Cell - Editable
             const priorityCell = row.insertCell();
             this.createEditablePriorityCell(priorityCell, task);
 
-            // Completion Cell - Make it editable
-            const completionCell = row.insertCell();
-            this.createEditableCompletionCell(completionCell, task);
+            // Hidden Cell - Make it interactive
+            const hiddenCell = row.insertCell();
+            hiddenCell.empty();
+            const hiddenText = task.hidden ? "Yes" : "No";
+            const hiddenDisplay = hiddenCell.createSpan({ text: hiddenText });
+            hiddenDisplay.style.cursor = "pointer";
+            hiddenDisplay.title = "Click to toggle hidden status"; // Tooltip
+
+            hiddenDisplay.onclick = async () => {
+                await this.handleTaskUpdate(task.id, 'hidden', !task.hidden);
+            };
 
             // Make file clickable
             const fileCell = row.insertCell();
@@ -436,7 +532,9 @@ export class TaskReportView extends ItemView {
      * @param updatedField The field that was changed ('priority' or 'completion').
      * @param newValue The new value for the field.
      */
-    async handleTaskUpdate(taskId: string, updatedField: 'priority' | 'completion' | 'dueDate' | 'description', newValue: any) {
+    async handleTaskUpdate(taskId: string, updatedField: 'priority' | 'dueDate' | 'description' | 'isCompleted' | 'hidden' | 'detailedDescription', newValue: any) {
+        // Note: 'completion' (numeric) is removed as 'isCompleted' (boolean) is used.
+        // Ensure 'hidden' and 'detailedDescription' are handled if they become editable via this method.
         const task = this.tasks.find(t => t.id === taskId); // Find task from master list
         if (!task) {
             new Notice("Error: Task not found for update.");
@@ -564,10 +662,12 @@ export interface TaskItem {
      * or for features like cross-task dependencies in the future.
      */
     id: string;
-    description: string;    // The main description of the task.
+    description: string;    // The main summary line of the task.
+    isCompleted: boolean;   // True if task checkbox is marked [x]
     dueDate?: string;       // Optional due date in YYYY-MM-DD format.
     priority: number;       // Task priority: 1 (High), 2 (Medium), 3 (Low).
-    completion: number;     // Task completion percentage (0-100).
+    hidden: boolean;        // True if task should be hidden by default in reports
+    detailedDescription: string; // Longer, multi-line description for the task
     filePath: string;       // Absolute path to the markdown file containing the task.
     lineNumber: number;     // Line number within the file where the task is defined.
     rawLine: string;        // The original, unmodified markdown line for this task. Used for reconstruction.
@@ -604,33 +704,40 @@ export function parseTask(line: string, filePath: string, lineNumber: number): T
         return null; // Invalid JSON
     }
 
-    // Extract description (text before the marker)
-    // This handles standard markdown task formats like "- [ ] " or "- [x] "
-    let description = line.substring(0, markerIndex).trim();
-    const taskCheckboxRegex = /^\s*-\s*\[([x ])\]\s*/; // Matches "- [ ] " or "- [x] "
-    const checkboxMatch = description.match(taskCheckboxRegex);
+    // Determine isCompleted from checkbox
+    const checkboxRegex = /^\s*-\s*\[([xX ])\]\s*/; // Regex to find checkbox and its state
+    const checkboxMatch = line.match(checkboxRegex); // Match against the full line
+    let isCompleted = false;
+    let description = ""; // This is the summary line
+
     if (checkboxMatch) {
-        description = description.substring(checkboxMatch[0].length).trim();
-    }
-
-
-    // Basic validation
-    if (typeof description !== 'string' || description.trim() === "") {
-        // If we couldn't get a description from before the marker, maybe it's inside the JSON
-         if (typeof taskData.description !== 'string' || taskData.description.trim() === "") {
-            console.warn("Task description is missing or invalid:", line);
-            return null;
+        isCompleted = checkboxMatch[1].toLowerCase() === 'x';
+        // The description is what comes AFTER the checkbox part, before the %%task-plugin marker
+        const textAfterCheckbox = line.substring(checkboxMatch[0].length);
+        const markerPositionInRemainder = textAfterCheckbox.indexOf(TASK_MARKER);
+        if (markerPositionInRemainder !== -1) {
+            description = textAfterCheckbox.substring(0, markerPositionInRemainder).trim();
+        } else {
+            // This case should be rare if marker is always present as per design
+            description = textAfterCheckbox.trim();
         }
-        description = taskData.description; // Use description from JSON if available
+    } else {
+        // Line doesn't even have a checkbox, so it's not a valid task for this plugin.
+        return null; // Not a valid task format if no checkbox
     }
 
+    // If description is empty after this, it might be in JSON (legacy or alternative format)
+    // For now, the description is ONLY from the line itself.
+    // No warning for empty description, allow it.
 
     return {
-        id: `${filePath}-${lineNumber}`, // Simple ID for now
-        description: description,
-        dueDate: taskData.dueDate,
-        priority: typeof taskData.priority === 'number' ? taskData.priority : 3, // Default to low priority
-        completion: typeof taskData.completion === 'number' ? taskData.completion : 0, // Default to 0%
+        id: `${filePath}-${lineNumber}`,
+        description: description, // This is the summary line
+        isCompleted: isCompleted,
+        dueDate: taskData.dueDate, // Keep existing optional handling
+        priority: typeof taskData.priority === 'number' ? taskData.priority : 2, // Default to medium (2)
+        hidden: taskData.hidden === true, // Default to false if undefined or not strictly true
+        detailedDescription: typeof taskData.detailedDescription === 'string' ? taskData.detailedDescription : "", // Default to empty string
         filePath,
         lineNumber,
         rawLine: line,
@@ -662,13 +769,16 @@ export function findTasksInFileContent(fileContent: string, filePath: string): T
  */
 class TaskInsertionModal extends Modal {
     plugin: MyTaskPlugin;
-    onSubmit: (description: string, dueDate: string, priority: number, completion: number) => void;
+    // Update onSubmit signature
+    onSubmit: (description: string, dueDate: string, priority: number, detailedDescription: string, hidden: boolean) => void;
 
     // Properties to store input values
     description: string = "";
     dueDate: string = "";
     priority: number = 2; // Default Medium
-    completion: number = 0; // Default 0%
+    // Add new properties
+    detailedDescription: string = "";
+    hidden: boolean = false;
 
     /**
      * @param app The Obsidian App instance.
@@ -676,7 +786,8 @@ class TaskInsertionModal extends Modal {
      * @param onSubmit Callback function to execute when the task is saved.
      *                 It receives the description, due date, priority, and completion.
      */
-    constructor(app: App, plugin: MyTaskPlugin, onSubmit: (description: string, dueDate: string, priority: number, completion: number) => void) {
+    constructor(app: App, plugin: MyTaskPlugin,
+                onSubmit: (description: string, dueDate: string, priority: number, detailedDescription: string, hidden: boolean) => void) {
         super(app);
         this.plugin = plugin;
         this.onSubmit = onSubmit;
@@ -691,10 +802,10 @@ class TaskInsertionModal extends Modal {
 
         contentEl.createEl("h2", { text: "Add New Task" });
 
-        // Description
+        // Description (summary)
         new Setting(contentEl)
-            .setName("Description")
-            .setDesc("What needs to be done?")
+            .setName("Task Summary")
+            .setDesc("Briefly, what needs to be done?")
             .addText(text => {
                 text.setPlaceholder("Enter task description")
                     .setValue(this.description)
@@ -723,22 +834,25 @@ class TaskInsertionModal extends Modal {
                         .onChange(value => this.priority = parseInt(value, 10));
             });
 
-        // Completion
+        // NEW: Detailed Description
         new Setting(contentEl)
-            .setName("Completion (%)")
-            .addText(text => { // Using text for now, can be enhanced to number type with validation
-                text.setPlaceholder("0-100")
-                    .setValue(String(this.completion))
-                    .onChange(value => {
-                        let num = parseInt(value, 10);
-                        if (isNaN(num)) num = 0;
-                        if (num < 0) num = 0;
-                        if (num > 100) num = 100;
-                        this.completion = num;
-                    });
-                text.inputEl.type = "number"; // Set input type to number
-                text.inputEl.min = "0";
-                text.inputEl.max = "100";
+            .setName("Detailed Description (Optional)")
+            .setDesc("Add more details, notes, or sub-tasks here.")
+            .addTextArea(textarea => {
+                textarea.setPlaceholder("Enter detailed notes...")
+                    .setValue(this.detailedDescription)
+                    .onChange(value => this.detailedDescription = value);
+                textarea.inputEl.rows = 4; // Adjust height as needed
+                textarea.inputEl.style.width = "100%";
+            });
+
+        // NEW: Hidden toggle
+        new Setting(contentEl)
+            .setName("Hidden Task")
+            .setDesc("If checked, this task might be hidden by default in some views.")
+            .addToggle(toggle => {
+                toggle.setValue(this.hidden)
+                    .onChange(value => this.hidden = value);
             });
 
         // Submit Button
@@ -748,10 +862,11 @@ class TaskInsertionModal extends Modal {
                     .setCta() // Makes it more prominent
                     .onClick(() => {
                         if (!this.description.trim()) {
-                            new Notice("Task description cannot be empty.");
+                            new Notice("Task summary cannot be empty.");
                             return;
                         }
-                        this.onSubmit(this.description, this.dueDate, this.priority, this.completion);
+                        // Update onSubmit call
+                        this.onSubmit(this.description, this.dueDate, this.priority, this.detailedDescription, this.hidden);
                         this.close();
                     });
             });
@@ -799,12 +914,18 @@ export default class MyTaskPlugin extends Plugin {
             id: 'insert-new-task',
             name: 'Insert New Task',
             editorCallback: (editor: Editor, view: MarkdownView) => {
-                new TaskInsertionModal(this.app, this, (description, dueDate, priority, completion) => {
-                    const taskData = {
-                        dueDate: dueDate || undefined,
-                        priority,
-                        completion
+                // Update the callback signature for TaskInsertionModal
+                new TaskInsertionModal(this.app, this,
+                    (description, dueDate, priority, detailedDescription, hidden) => {
+
+                    const taskData: any = { // Use 'any' temporarily for flexibility or define a specific interface
+                        priority: priority
                     };
+                    if (dueDate) taskData.dueDate = dueDate;
+                    if (detailedDescription) taskData.detailedDescription = detailedDescription; // Only add if not empty
+                    if (hidden) taskData.hidden = true; // Only add if true
+
+                    // Task always starts as incomplete: - [ ]
                     const taskString = `- [ ] ${description.trim()} ${TASK_MARKER}${JSON.stringify(taskData)}${TASK_MARKER_END}`;
                     editor.replaceSelection(taskString + '\n');
                 }).open();
@@ -889,7 +1010,8 @@ export default class MyTaskPlugin extends Plugin {
      * @throws Error if the file is not found, the line number is out of bounds,
      *               the task marker is not found, or JSON parsing/stringifying fails.
      */
-    async updateTaskInFile(taskToUpdate: TaskItem, updatedField: 'priority' | 'completion' | 'dueDate' | 'description', newValue: any) {
+    async updateTaskInFile(taskToUpdate: TaskItem, updatedField: 'priority' | 'dueDate' | 'description' | 'isCompleted' | 'hidden' | 'detailedDescription', newValue: any) {
+        // Note: 'completion' (numeric) is removed from updatedField type
         const file = this.app.vault.getAbstractFileByPath(taskToUpdate.filePath);
         if (!(file instanceof TFile)) { // Ensure it's a file and not a folder
             console.error("File not found or is not a TFile:", taskToUpdate.filePath);
@@ -945,17 +1067,32 @@ export default class MyTaskPlugin extends Plugin {
 
         let newLine = "";
 
-        if (updatedField === 'description') {
+        if (updatedField === 'isCompleted') {
+            const newCompletedState = newValue as boolean;
+            const checkboxRegex = /^(\s*-\s*\[)([xX ])(\]\s*)/; // Regex to capture parts of the checkbox
+            const match = originalLine.match(checkboxRegex);
+
+            if (match) {
+                const prefix = match[1]; // e.g., "- ["
+                const suffix = match[3]; // e.g., "] "
+                const restOfLine = originalLine.substring(match[0].length); // Content after the checkbox
+
+                newLine = `${prefix}${newCompletedState ? 'x' : ' '}${suffix}${restOfLine}`;
+            } else {
+                console.error("Could not find checkbox in task line to update status:", originalLine);
+                throw new Error("Task checkbox not found for status update.");
+            }
+        } else if (updatedField === 'description') {
             const newDescription = String(newValue).trim();
             if (!newDescription) {
                 throw new Error("Description cannot be empty.");
             }
 
             const checkboxRegex = /^(\s*-\s*\[[x ]\]\s*)/;
-            const checkboxMatch = originalLine.match(checkboxRegex); // Use originalLine here as currentLine might be descriptionPart
+            const checkboxMatch = originalLine.match(checkboxRegex);
             const checkboxPart = checkboxMatch ? checkboxMatch[1] : "- [ ] ";
 
-            const markerIdx = originalLine.indexOf(TASK_MARKER); // find marker in original line
+            const markerIdx = originalLine.indexOf(TASK_MARKER);
             if (markerIdx === -1) {
                 throw new Error("Task marker not found in the line. Cannot update description.");
             }
@@ -963,14 +1100,38 @@ export default class MyTaskPlugin extends Plugin {
 
             newLine = `${checkboxPart}${newDescription} ${markerPart}`;
 
-        } else { // Handles 'priority', 'completion', 'dueDate'
-            // Reconstruct the new JSON string and the new full task line
-            const newJsonDataString = JSON.stringify(taskData);
-            // Ensure there's a space before the task marker if the description part is not empty.
-            const newMarkerPart = `${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
-            newLine = descriptionPart.trimEnd().length > 0
-                ? `${descriptionPart.trimEnd()} ${newMarkerPart}`
-                : newMarkerPart; // Handles cases where task might start with marker (though current parsing assumes it doesn't)
+        } else { // Handles JSON fields: 'priority', 'dueDate', 'hidden', 'detailedDescription'
+            const markerIndex = originalLine.indexOf(TASK_MARKER);
+            const endIndex = originalLine.indexOf(TASK_MARKER_END, markerIndex + TASK_MARKER.length);
+            if (markerIndex === -1 || endIndex === -1) {
+                 console.error("Task marker not found for JSON update in line:", originalLine);
+                 throw new Error("Task data format error in file (marker not found for JSON update).");
+            }
+            const descAndCheckboxPart = originalLine.substring(0, markerIndex); // This part includes checkbox and description
+            const jsonDataString = originalLine.substring(markerIndex + TASK_MARKER.length, endIndex);
+            let taskDataLocal = JSON.parse(jsonDataString); // Use a different variable name to avoid confusion with taskData from outer scope if any
+
+            if (updatedField === 'dueDate') {
+                if (newValue === null || newValue === "") { delete taskDataLocal.dueDate; }
+                else { taskDataLocal.dueDate = newValue; }
+            } else if (updatedField === 'priority') {
+                taskDataLocal.priority = newValue as number;
+            } else if (updatedField === 'hidden') {
+                if (newValue === false && taskDataLocal.hasOwnProperty('hidden')) {
+                    delete taskDataLocal.hidden;
+                } else if (newValue === true) {
+                    taskDataLocal.hidden = true;
+                }
+            } else if (updatedField === 'detailedDescription') {
+                 if ((newValue === "" || newValue === null) && taskDataLocal.hasOwnProperty('detailedDescription')) {
+                    delete taskDataLocal.detailedDescription;
+                } else if (newValue && typeof newValue === 'string' && newValue !== "") {
+                    taskDataLocal.detailedDescription = newValue;
+                }
+            }
+
+            const newJsonDataString = JSON.stringify(taskDataLocal);
+            newLine = `${descAndCheckboxPart.trimEnd()} ${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
         }
 
         lines[taskToUpdate.lineNumber] = newLine; // Replace the old line with the new one
