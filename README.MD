@@ -38,11 +38,11 @@ Where:
 *   `"completion":P` (JSON property, Optional, defaults to 0 when not specified): Completion percentage (0-100). E.g., `"completion":50`.
 
 **Example:**
-\`\`\`markdown
+```markdown
 - [ ] Finalize project proposal %%task-plugin:{"dueDate":"2024-08-15", "priority":1, "completion":25}%%
 - [ ] Buy groceries %%task-plugin:{"priority":2, "completion":0}%%
 - [x] Send initial email %%task-plugin:{"completion":100}%%
-\`\`\`
+```
 
 ### 2. Inserting Tasks via Command
 
@@ -72,14 +72,14 @@ Where:
 ## Installation and Development (Using Makefile)
 
 1.  **Clone the Repository:**
-    \`\`\`bash
+    ```bash
     git clone <repository-url>
     cd obsidian-task-manager
-    \`\`\`
+    ```
 2.  **Install Dependencies:**
-    \`\`\`bash
+    ```bash
     npm install
-    \`\`\`
+    ```
 3.  **Configure Vault Path:**
     *   Open the `Makefile` in a text editor.
     *   Locate the line `OBSIDIAN_VAULT_PATH :=`.
@@ -88,13 +88,13 @@ Where:
         *   Example (Windows): `OBSIDIAN_VAULT_PATH := C:/Users/yourname/Documents/MyVault` (use forward slashes)
 4.  **Build and Install:**
     *   To build the plugin:
-        \`\`\`bash
+        ```bash
         make build
-        \`\`\`
+        ```
     *   To build and install into your configured vault:
-        \`\`\`bash
+        ```bash
         make install
-        \`\`\`
+        ```
 5.  **Enable in Obsidian:**
     *   Open Obsidian.
     *   Go to `Settings` -> `Community plugins`.
