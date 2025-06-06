@@ -22,9 +22,9 @@ This plugin provides enhanced task management capabilities within Obsidian, allo
 
 You can define a task in any markdown note using the following format:
 
-\`\`\`markdown
+```markdown
 - [ ] Your task description %%task-plugin:{"dueDate":"YYYY-MM-DD", "priority":N, "completion":P}%%
-\`\`\`
+```
 
 Where:
 *   `- [ ]` is the standard markdown task syntax (can also be `- [x]` for pre-completed).
