@@ -482,50 +482,6 @@ export class TaskReportView extends ItemView {
     }
 
     /**
-     * Creates an editable completion cell for a task in the table.
-     * Displays completion as text (e.g., "50%"), converting to a number input on click.
-     * @param cell The HTMLTableCellElement to populate.
-     * @param task The TaskItem associated with this row.
-     */
-    private createEditableCompletionCell(cell: HTMLElement, task: TaskItem) {
-        cell.empty();
-        const displayText = String(task.completion) + "%";
-        const displayEl = cell.createSpan({ text: displayText });
-        displayEl.style.cursor = "pointer";
-
-        displayEl.onclick = () => {
-            cell.empty(); // Clear the text display
-            const inputEl = cell.createEl("input", { type: "number" });
-            inputEl.value = String(task.completion);
-            inputEl.min = "0";
-            inputEl.max = "100";
-            inputEl.style.width = "60px"; // Keep input field small
-
-            const saveValue = async () => {
-                let val = parseInt(inputEl.value, 10);
-                // Validate and clamp the value
-                if (isNaN(val)) val = task.completion; // Revert if not a number
-                if (val < 0) val = 0;
-                if (val > 100) val = 100;
-                await this.handleTaskUpdate(task.id, 'completion', val);
-            };
-
-            inputEl.onblur = saveValue; // Save when input loses focus
-            inputEl.onkeydown = (e) => { // Save on Enter, revert on Escape
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveValue();
-                } else if (e.key === "Escape") {
-                    e.preventDefault();
-                    this.createEditableCompletionCell(cell, task); // Re-render original text
-                }
-            };
-            inputEl.focus(); // Auto-focus and select current value
-            inputEl.select();
-        };
-    }
-
-    /**
      * Handles the update of a task's field (priority or completion) from the UI.
      * It calls the plugin's method to update the task in the file and then refreshes the view.
      * @param taskId The ID of the task to update.
@@ -1056,7 +1012,7 @@ export default class MyTaskPlugin extends Plugin {
             } else {
                 taskData.dueDate = newValue; // newValue should be YYYY-MM-DD string
             }
-        } else if (updatedField === 'priority' || updatedField === 'completion') { // Keep existing logic for these
+        } else if (updatedField === 'priority') {
              taskData[updatedField] = newValue;
         }
         // else: handle description in the next plan step / subtask
@@ -1129,6 +1085,7 @@ export default class MyTaskPlugin extends Plugin {
                     taskDataLocal.detailedDescription = newValue;
                 }
             }
+        // Note: The old 'completion' (numeric) field handling is removed.
 
             const newJsonDataString = JSON.stringify(taskDataLocal);
             newLine = `${descAndCheckboxPart.trimEnd()} ${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
