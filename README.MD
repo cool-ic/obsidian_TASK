@@ -65,9 +65,10 @@ Where:
 1.  Open the Task Report:
     *   Click the "Task Report" icon (looks like a checklist) in the left ribbon.
     *   Or, execute the "Task Manager: Open Task Report" command from the command palette.
-2.  The report view will display all tasks found in your vault. The columns are: "Status", "Summary", "Detailed Desc.", "Due Date", "Priority", "Hidden", and "File".
+2.  The report view will display all tasks found in your vault. The columns are: "Status", "Overdue", "Summary", "Detailed Desc.", "Due Date", "Priority", "Hidden", and "File".
 3.  **Interacting with the Report:**
     *   **Navigation:** Click on a file path in the "File" column to open the note containing that task, scrolled to the relevant line.
+    *   **Overdue Indicator:** The "Overdue" column displays 'Y' if an incomplete task's due date has passed. Such rows are highlighted with a light red background for easy identification.
     *   **Toggle Status:** Click the checkbox in the "Status" column to mark a task as done (`- [x]`) or pending (`- [ ]`). The change is saved automatically to the source file.
     *   **Editing Summary:** Click on the text in the "Summary" column. An input field will appear. Edit the summary and press Enter or click away to save.
     *   **Editing Detailed Description:** Click on the text in the "Detailed Desc." column. A multi-line textarea will appear. Edit the details and press Enter (without Shift) or click away to save. Use Shift+Enter for newlines within the description.

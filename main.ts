@@ -330,7 +330,10 @@ export class TaskReportView extends ItemView {
         };
 
         // Create all table headers
+        headerRow.empty(); // Clear existing headers to redefine order
+
         createSortableHeader("Status", "isCompleted"); // Sorts by isCompleted
+        headerRow.insertCell().setText("Overdue"); // Non-sortable for now
         createSortableHeader("Summary", "description");
         createSortableHeader("Detailed Desc.", "detailedDescription");
         createSortableHeader("Due Date", "dueDate");
@@ -354,6 +357,31 @@ export class TaskReportView extends ItemView {
             statusCheckbox.onchange = async () => {
                 await this.handleTaskUpdate(task.id, 'isCompleted', statusCheckbox.checked);
             };
+
+            // --- NEW "Overdue" Cell and Logic ---
+            const overdueCell = row.insertCell();
+            let isOverdue = false;
+
+            if (task.dueDate && !task.isCompleted) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalize today to midnight for date-only comparison
+
+                // Parse YYYY-MM-DD as local time midnight.
+                const dueDateObj = new Date(task.dueDate + "T00:00:00");
+
+                if (dueDateObj < today) {
+                    isOverdue = true;
+                }
+            }
+
+            overdueCell.setText(isOverdue ? "Y" : "N");
+
+            if (isOverdue) {
+                row.addClass('task-overdue');
+            } else {
+                row.removeClass('task-overdue'); // Ensure class is removed if not overdue
+            }
+            // --- End of "Overdue" Cell and Logic ---
 
             // Summary (existing description) Cell - Editable
             const summaryCell = row.insertCell();
