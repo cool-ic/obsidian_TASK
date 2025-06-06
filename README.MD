@@ -105,7 +105,7 @@
 1.  **克隆仓库:**
     ```bash
     git clone <repository-url>
-    cd obsidian-task-manager
+    cd obsidian_TASK
     ```
 2.  **安装依赖:**
     ```bash
@@ -248,7 +248,7 @@ Where:
 1.  **Clone the Repository:**
     ```bash
     git clone <repository-url>
-    cd obsidian-task-manager
+    cd obsidian_TASK
     ```
 2.  **Install Dependencies:**
     ```bash
