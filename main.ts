@@ -101,10 +101,10 @@ export class TaskReportView extends ItemView {
         const priorityFilterGroup = filterControlsContainer.createDiv();
         priorityFilterGroup.createEl("label", { text: "Priority: ", cls:"task-manager-filter-label" });
         const prioritySelect = priorityFilterGroup.createEl("select");
-        prioritySelect.addOption("all", "All");
-        prioritySelect.addOption("1", "High");
-        prioritySelect.addOption("2", "Medium");
-        prioritySelect.addOption("3", "Low");
+        prioritySelect.options.add(new Option("All", "all"));
+        prioritySelect.options.add(new Option("High", "1"));
+        prioritySelect.options.add(new Option("Medium", "2"));
+        prioritySelect.options.add(new Option("Low", "3"));
         prioritySelect.onchange = () => {
             this.filterPriority = prioritySelect.value;
             this.applyFiltersAndRender();
@@ -123,10 +123,10 @@ export class TaskReportView extends ItemView {
         const completionFilterGroup = filterControlsContainer.createDiv();
         completionFilterGroup.createEl("label", { text: "Completion: ", cls:"task-manager-filter-label" });
         const completionSelect = completionFilterGroup.createEl("select");
-        completionSelect.addOption("all", "All");
-        completionSelect.addOption("notStarted", "Not Started (0%)");
-        completionSelect.addOption("inProgress", "In Progress (1-99%)");
-        completionSelect.addOption("completed", "Completed (100%)");
+        completionSelect.options.add(new Option("All", "all"));
+        completionSelect.options.add(new Option("Not Started (0%)", "notStarted"));
+        completionSelect.options.add(new Option("In Progress (1-99%)", "inProgress"));
+        completionSelect.options.add(new Option("Completed (100%)", "completed"));
         completionSelect.onchange = () => {
             this.filterCompletion = completionSelect.value;
             this.applyFiltersAndRender();
@@ -274,10 +274,12 @@ export class TaskReportView extends ItemView {
      * Task cells for priority and completion are made editable via helper methods.
      */
     renderTasks() {
-        let tableContainer = this.contentEl.querySelector(".task-manager-report-table-container");
+        let tableContainer = this.contentEl.querySelector(".task-manager-report-table-container") as HTMLDivElement | null;
         if (!tableContainer) { // Should exist from onOpen, but good to double check
+            // If it truly doesn't exist, create it. This path implies onOpen might not have run or was cleared.
+            // For safety, ensuring it's created here if missing.
             tableContainer = this.contentEl.createDiv({ cls: "task-manager-report-table-container" });
-            tableContainer.style.marginTop = "10px";
+            tableContainer.style.marginTop = "10px"; // Styles applied if created here.
         }
         tableContainer.empty(); // Clear previous table content
 
@@ -367,9 +369,9 @@ export class TaskReportView extends ItemView {
         displayEl.onclick = () => {
             cell.empty(); // Clear the text display
             const selectEl = cell.createEl("select");
-            selectEl.addOption("1", "High");
-            selectEl.addOption("2", "Medium");
-            selectEl.addOption("3", "Low");
+            selectEl.options.add(new Option("High", "1"));
+            selectEl.options.add(new Option("Medium", "2"));
+            selectEl.options.add(new Option("Low", "3"));
             selectEl.value = String(task.priority); // Set current priority
 
             // Save on blur (losing focus) or change
@@ -966,8 +968,8 @@ export default class MyTaskPlugin extends Plugin {
             const newJsonDataString = JSON.stringify(taskData);
             // Ensure there's a space before the task marker if the description part is not empty.
             const newMarkerPart = `${TASK_MARKER}${newJsonDataString}${TASK_MARKER_END}`;
-            newLine = descriptionPart.trimRight().length > 0
-                ? `${descriptionPart.trimRight()} ${newMarkerPart}`
+            newLine = descriptionPart.trimEnd().length > 0
+                ? `${descriptionPart.trimEnd()} ${newMarkerPart}`
                 : newMarkerPart; // Handles cases where task might start with marker (though current parsing assumes it doesn't)
         }
 
