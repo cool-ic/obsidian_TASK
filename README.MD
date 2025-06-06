@@ -29,13 +29,13 @@ You can define a task in any markdown note using the following format:
 Where:
 *   `- [ ]` is the standard markdown task syntax (can also be `- [x]` for pre-completed).
 *   `Your task description` is the text of your task.
-*   `%%task-plugin:{...}%%` is the special marker for this plugin's task data.
-*   `"dueDate":"YYYY-MM-DD"` (Optional): The due date for the task. E.g., `"dueDate":"2024-12-31"`.
-*   `"priority":N` (Optional, defaults to Medium): Priority of the task.
+*   `%%task-plugin:{...}%%` is the special marker for this plugin's task data. The content within the curly braces `{}` should be valid JSON.
+*   `"dueDate":"YYYY-MM-DD"` (JSON property, Optional): The due date for the task. E.g., `"dueDate":"2024-12-31"`.
+*   `"priority":N` (JSON property, Optional, defaults to Medium when not specified): Priority of the task.
     *   `1`: High
     *   `2`: Medium
     *   `3`: Low
-*   `"completion":P` (Optional, defaults to 0): Completion percentage (0-100). E.g., `"completion":50`.
+*   `"completion":P` (JSON property, Optional, defaults to 0 when not specified): Completion percentage (0-100). E.g., `"completion":50`.
 
 **Example:**
 \`\`\`markdown
