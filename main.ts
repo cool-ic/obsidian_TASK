@@ -97,17 +97,17 @@ export class TaskReportView extends ItemView {
         filterControlsContainer.style.gap = "10px"; // Space between filter elements
 
         // Keyword filter
-        const keywordFilterGroup = filterControlsContainer.createDiv();
-        keywordFilterGroup.createEl("label", { text: "Keyword: ", cls:"task-manager-filter-label" });
-        const keywordInput = keywordFilterGroup.createEl("input", { type: "text", placeholder: "Description..." });
+        const keywordFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
+        keywordFilterGroup.createEl("label", { text: "Keyword: ", cls: "task-manager-filter-label" });
+        const keywordInput = keywordFilterGroup.createEl("input", { type: "text", placeholder: "Summary..." });
         keywordInput.oninput = () => {
             this.filterKeyword = keywordInput.value.toLowerCase();
             this.applyFiltersAndRender();
         };
 
         // Priority filter
-        const priorityFilterGroup = filterControlsContainer.createDiv();
-        priorityFilterGroup.createEl("label", { text: "Priority: ", cls:"task-manager-filter-label" });
+        const priorityFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
+        priorityFilterGroup.createEl("label", { text: "Priority: ", cls: "task-manager-filter-label" });
         const prioritySelect = priorityFilterGroup.createEl("select");
         prioritySelect.options.add(new Option("All", "all"));
         prioritySelect.options.add(new Option("High", "1"));
@@ -119,8 +119,8 @@ export class TaskReportView extends ItemView {
         };
 
         // File Path filter
-        const filePathFilterGroup = filterControlsContainer.createDiv();
-        filePathFilterGroup.createEl("label", { text: "File Path: ", cls:"task-manager-filter-label" });
+        const filePathFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
+        filePathFilterGroup.createEl("label", { text: "File Path: ", cls: "task-manager-filter-label" });
         const filePathInput = filePathFilterGroup.createEl("input", { type: "text", placeholder: "path contains..." });
         filePathInput.oninput = () => {
             this.filterFilePath = filePathInput.value.toLowerCase();
@@ -128,8 +128,8 @@ export class TaskReportView extends ItemView {
         };
 
         // Completion filter
-        const completionFilterGroup = filterControlsContainer.createDiv();
-        completionFilterGroup.createEl("label", { text: "Completion: ", cls:"task-manager-filter-label" });
+        const completionFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
+        completionFilterGroup.createEl("label", { text: "Completion: ", cls: "task-manager-filter-label" });
         const completionSelect = completionFilterGroup.createEl("select");
         completionSelect.options.add(new Option("All", "all"));
         completionSelect.options.add(new Option("Not Started (0%)", "notStarted"));
@@ -141,10 +141,10 @@ export class TaskReportView extends ItemView {
         };
 
         // NEW: Toggle for showing hidden tasks
-        const showHiddenFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
-        new Setting(showHiddenFilterGroup)
-            .setName("Show Hidden") // Shortened name for better fit
-            // .setDesc("Toggle to display tasks marked as hidden.") // Description can be verbose, consider removing for space
+        const showHiddenFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" }); // Ensure this group also has the class if desired for spacing/alignment
+        new Setting(showHiddenFilterGroup) // Using Setting for consistent look and feel
+            .setName("Show Hidden")
+            .setDesc("Display tasks marked as hidden.") // Keep desc concise
             .addToggle(toggle => {
                 toggle.setValue(this.showHiddenTasks)
                     .onChange(value => {
@@ -474,8 +474,9 @@ export class TaskReportView extends ItemView {
             hiddenCell.empty();
             const hiddenText = task.hidden ? "Yes" : "No";
             const hiddenDisplay = hiddenCell.createSpan({ text: hiddenText });
-            hiddenDisplay.style.cursor = "pointer";
-            hiddenDisplay.title = "Click to toggle hidden status"; // Tooltip
+            hiddenDisplay.style.cursor = "pointer"; // Will be handled by CSS class now
+            hiddenDisplay.title = "Click to toggle hidden status";
+            hiddenDisplay.addClass("editable-text-span");
 
             hiddenDisplay.onclick = async () => {
                 await this.handleTaskUpdate(task.id, 'hidden', !task.hidden);
@@ -506,8 +507,9 @@ export class TaskReportView extends ItemView {
     private createEditablePriorityCell(cell: HTMLElement, task: TaskItem) {
         cell.empty();
         const priorityText = getPriorityText(task.priority); // Helper to convert 1,2,3 to High,Medium,Low
-        const displayEl = cell.createSpan({ text: priorityText });
-        displayEl.style.cursor = "pointer";
+        const displayEl = cell.createSpan({ text: priorityText, cls: "editable-text-span" });
+        // displayEl.style.cursor = "pointer"; // Handled by CSS
+        displayEl.title = "Click to change priority";
 
         displayEl.onclick = () => {
             cell.empty(); // Clear the text display
@@ -568,8 +570,9 @@ export class TaskReportView extends ItemView {
      */
     private createEditableDescriptionCell(cell: HTMLElement, task: TaskItem) {
         cell.empty();
-        const displayEl = cell.createSpan({ text: task.description });
-        displayEl.style.cursor = "pointer";
+        const displayEl = cell.createSpan({ text: task.description, cls: "editable-text-span" });
+        // displayEl.style.cursor = "pointer"; // Handled by CSS
+        displayEl.title = "Click to edit summary";
 
         displayEl.onclick = () => {
             cell.empty();
@@ -615,8 +618,9 @@ export class TaskReportView extends ItemView {
     private createEditableDueDateCell(cell: HTMLElement, task: TaskItem) {
         cell.empty();
         const currentDueDate = task.dueDate || "-";
-        const displayEl = cell.createSpan({ text: currentDueDate });
-        displayEl.style.cursor = "pointer";
+        const displayEl = cell.createSpan({ text: currentDueDate, cls: "editable-text-span" });
+        // displayEl.style.cursor = "pointer"; // Handled by CSS
+        displayEl.title = "Click to edit due date";
 
         displayEl.onclick = () => {
             cell.empty();
