@@ -1,48 +1,210 @@
-/* Plugin specific styles will go here */
+/* styles.css - Task Manager Plugin UI Enhancements */
+
+/* --- General View Styling --- */
 .task-manager-report-view {
-    padding: 10px;
+    padding: 15px; /* Overall padding for the view */
+    font-family: var(--font-family-interface, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif);
+    font-size: var(--font-ui-normal); /* Use Obsidian's normal UI font size */
+    /* Use this class on the root element of your view if not already present */
 }
-.task-manager-report-view table {
+
+/* View Title (h2) - usually handled by theme, but can add margin if needed */
+.task-manager-report-view h2 {
+    margin-bottom: 15px;
+    font-size: var(--font-heading-2); /* Use theme's H2 size */
+}
+
+/* Reference date display for overdue calculation */
+.task-manager-reference-date {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    margin-bottom: 15px; /* Increased margin */
+    padding: 5px 8px;
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-s);
+    display: inline-block; /* So it doesn't take full width */
+}
+
+/* --- Filter Controls Area --- */
+.task-manager-filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Spacing between filter groups/items */
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--background-secondary-alt); /* Slightly different background for filter area */
+    border-radius: var(--radius-m);
+}
+
+.task-manager-filter-controls .setting-item {
+    /* For 'Show Hidden Tasks' toggle if it's a Setting item */
+    border: none; /* Remove default Setting item border */
+    padding: 5px 0; /* Adjust padding */
+    margin: 0; /* Reset margin if wrapped in a group */
+}
+.task-manager-filter-controls .setting-item-info {
+    font-weight: normal; /* Make name less bold if desired */
+}
+.task-manager-filter-controls .setting-item-control button { /* For toggles inside settings */
+    background-color: var(--interactive-accent) !important; /* Try to style toggle button if possible */
+}
+
+
+.task-manager-filter-group { /* If you use wrapper divs for label+input */
+    display: flex;
+    flex-direction: column; /* Stack label on top of input */
+    gap: 5px;
+}
+
+.task-manager-filter-label {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    font-weight: 500; /* Slightly bolder label */
+}
+
+/* Common styling for text inputs and select dropdowns in filters and inline editing */
+.task-manager-report-view input[type="text"],
+.task-manager-report-view select,
+.task-manager-report-view textarea {
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s); /* Slightly rounded corners */
+    padding: 8px 10px;
+    font-size: var(--font-ui-small);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-manager-report-view input[type="text"]:focus,
+.task-manager-report-view select:focus,
+.task-manager-report-view textarea:focus {
+    border-color: var(--interactive-accent); /* Highlight border on focus */
+    box-shadow: 0 0 0 2px var(--interactive-accent-translucent); /* Subtle focus ring */
+    outline: none;
+}
+
+.task-manager-report-view select {
+    min-width: 150px; /* Give selects some base width */
+}
+
+/* Refresh Button Styling */
+.task-manager-report-view button,
+.task-manager-report-view .button { /* For Obsidian's Button component if used */
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    padding: 8px 15px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    font-size: var(--font-ui-small);
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.task-manager-report-view button:hover,
+.task-manager-report-view .button:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+/* --- Table Styling --- */
+.task-manager-report-table-container {
+    margin-top: 15px;
+    overflow-x: auto; /* Ensure table is scrollable horizontally if content overflows */
+}
+
+table.task-manager-report-view {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0; /* Remove spacing between cells */
+    /* Remove outer table border, rely on row borders */
 }
-.task-manager-report-view th,
-.task-manager-report-view td {
-    border: 1px solid var(--background-modifier-border);
-    padding: 8px;
+
+table.task-manager-report-view th,
+table.task-manager-report-view td {
+    padding: 10px 12px; /* Increased padding */
     text-align: left;
-}
-.task-manager-report-view th {
-    background-color: var(--background-secondary);
+    border-bottom: 1px solid var(--background-modifier-border); /* Horizontal row separators only */
 }
 
-/* Style for overdue task rows in the Task Manager report */
+table.task-manager-report-view th {
+    font-weight: 600; /* Bolder headers */
+    background-color: var(--background-secondary); /* Subtle background for headers */
+    color: var(--text-normal);
+    user-select: none; /* Prevent text selection on headers */
+}
+
+table.task-manager-report-view tr:last-child td {
+    border-bottom: none; /* Remove border from last row's cells */
+}
+
+/* Row Hover Effect (subtle) */
+table.task-manager-report-view tbody tr:hover td {
+    background-color: var(--background-modifier-hover);
+}
+
+/* --- Specific Cell/Interactive Element Styling --- */
+
+/* Status Checkbox */
+table.task-manager-report-view td input[type="checkbox"] {
+    margin: 0; /* Remove default margins if any */
+    vertical-align: middle;
+    height: 16px; /* Adjust size if needed */
+    width: 16px;
+    accent-color: var(--interactive-accent); /* Style checkbox color where supported */
+}
+
+/* Clickable spans that turn into inputs/textareas */
+table.task-manager-report-view td span.editable-text-span {
+    cursor: pointer; /* Ensure cursor property is here */
+    padding: 2px 0;
+    transition: color 0.2s ease;
+}
+table.task-manager-report-view td span.editable-text-span:hover {
+    color: var(--interactive-accent);
+    text-decoration: underline dotted var(--interactive-accent-translucent) 1px;
+}
+
+
+/* Inline editing inputs/textarea within table cells */
+table.task-manager-report-view td input[type="text"],
+table.task-manager-report-view td select,
+table.task-manager-report-view td textarea {
+    width: calc(100% - 10px); /* Make them fill cell width minus some padding */
+    box-sizing: border-box;
+    font-size: var(--font-ui-small); /* Match filter input size */
+}
+table.task-manager-report-view td textarea {
+    min-height: 50px; /* Base height for textarea */
+    vertical-align: top; /* Align with top of cell if other content is present */
+}
+
+
+/* Maintain Row Color-Coding - these should take precedence over hover if specific enough */
+/* They already target 'td', so they are quite specific. */
 .task-manager-report-view tr.task-overdue td {
-    background-color: #FFDDDD; /* A lighter, less intense pink/red */
-    /* Using lightcoral directly can be too strong with some themes. */
-    /* Consider user's theme: use Obsidian CSS variables if possible for better theme integration, */
-    /* but a fixed color is simpler for now. */
+    background-color: #FFDDDD !important; /* Light Pink/Red - use !important if hover conflicts */
 }
-
-/* Optional: Ensure text is readable on the new background. */
-/* This might not be necessary if the chosen background is light enough */
-/* and the default text color contrasts well. */
-/*
-.task-manager-report-view tr.task-overdue td,
-.task-manager-report-view tr.task-overdue td a {
-    color: var(--text-normal); // Try to use theme's normal text color
-}
-*/
-
-/* Style for pending (incomplete) but not overdue task rows */
 .task-manager-report-view tr.task-pending-not-overdue td {
-    background-color: #DFF0D8; /* A light, pleasant green */
+    background-color: #DFF0D8 !important; /* Light Green - use !important if hover conflicts */
 }
 
-/* Optional: If text readability on this green needs adjustment, similar to overdue */
-/*
-.task-manager-report-view tr.task-pending-not-overdue td,
-.task-manager-report-view tr.task-pending-not-overdue td a {
-    color: #3C763D; // Darker green text, adjust as needed
+/* Ensure text color on colored rows is readable, and hover effect is less jarring */
+.task-manager-report-view tr.task-overdue:hover td,
+.task-manager-report-view tr.task-pending-not-overdue:hover td {
+    /* Slightly darken the existing color or use a fixed hover color */
+    /* For simplicity, let's allow the default hover to try to blend */
+    /* Or, define specific hover states for these colored rows if needed: */
+    /* filter: brightness(95%); */
 }
-*/
+
+/* Ensure links in colored rows are also readable */
+.task-manager-report-view tr.task-overdue td a,
+.task-manager-report-view tr.task-pending-not-overdue td a {
+    color: var(--text-normal); /* Or a specific contrasting color */
+}
+
+/* Sort indicators in table headers */
+table.task-manager-report-view th.sort-asc,
+table.task-manager-report-view th.sort-desc {
+    color: var(--interactive-accent); /* Highlight sorted column header text */
+}
