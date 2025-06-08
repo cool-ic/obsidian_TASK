@@ -29,7 +29,7 @@ export class TaskReportView extends ItemView {
     private filterKeyword: string = "";
     private filterPriority: string = "all"; // Valid values: "all", "1", "2", "3"
     private filterFilePath: string = "";
-    private filterCompletion: string = "all"; // Valid values: "all", "completed", "inProgress", "notStarted"
+    // private filterCompletion: string = "all"; // REMOVED
 
     // Tasks to be displayed after filtering and sorting are applied.
     private displayedTasks: TaskItem[] = [];
@@ -38,7 +38,7 @@ export class TaskReportView extends ItemView {
     private sortColumn: keyof TaskItem | null = null; // Column key currently used for sorting.
     private sortDirection: 'asc' | 'desc' = 'asc'; // Current sort direction.
     private showHiddenTasks: boolean = false;
-    private overdueReferenceDateEl: HTMLElement; // NEW property
+    // private overdueReferenceDateEl: HTMLElement; // REMOVED property
 
     /**
      * Constructs the TaskReportView.
@@ -83,12 +83,6 @@ export class TaskReportView extends ItemView {
         this.contentEl.empty();
         this.contentEl.createEl("h2", { text: TASK_REPORT_DISPLAY_TEXT });
 
-        // NEW: Display for overdue calculation reference date
-        this.overdueReferenceDateEl = this.contentEl.createDiv({ cls: "task-manager-reference-date" });
-        this.overdueReferenceDateEl.style.fontSize = "var(--font-ui-smaller)"; // Use Obsidian variable for font size
-        this.overdueReferenceDateEl.style.color = "var(--text-muted)";
-        this.overdueReferenceDateEl.style.marginBottom = "10px";
-
         // Filter Controls Container
         const filterControlsContainer = this.contentEl.createDiv({ cls: "task-manager-filter-controls" });
         filterControlsContainer.style.marginBottom = "10px";
@@ -124,19 +118,6 @@ export class TaskReportView extends ItemView {
         const filePathInput = filePathFilterGroup.createEl("input", { type: "text", placeholder: "path contains..." });
         filePathInput.oninput = () => {
             this.filterFilePath = filePathInput.value.toLowerCase();
-            this.applyFiltersAndRender();
-        };
-
-        // Completion filter
-        const completionFilterGroup = filterControlsContainer.createDiv({ cls: "task-manager-filter-group" });
-        completionFilterGroup.createEl("label", { text: "Completion: ", cls: "task-manager-filter-label" });
-        const completionSelect = completionFilterGroup.createEl("select");
-        completionSelect.options.add(new Option("All", "all"));
-        completionSelect.options.add(new Option("Not Started (0%)", "notStarted"));
-        completionSelect.options.add(new Option("In Progress (1-99%)", "inProgress"));
-        completionSelect.options.add(new Option("Completed (100%)", "completed"));
-        completionSelect.onchange = () => {
-            this.filterCompletion = completionSelect.value;
             this.applyFiltersAndRender();
         };
 
@@ -192,22 +173,23 @@ export class TaskReportView extends ItemView {
             const priorityMatch = this.filterPriority === "all" || String(task.priority) === this.filterPriority;
             const filePathMatch = !this.filterFilePath || task.filePath.toLowerCase().includes(this.filterFilePath);
 
-            let completionStatusMatch = false;
-            if (this.filterCompletion === "all") {
-                completionStatusMatch = true;
-            } else if (this.filterCompletion === "notStarted" && !task.isCompleted) { // Adjusted for isCompleted
-                completionStatusMatch = true;
-            } else if (this.filterCompletion === "inProgress") {
-                // "In Progress" is mapped to "not completed"
-                completionStatusMatch = !task.isCompleted;
-            } else if (this.filterCompletion === "completed" && task.isCompleted) { // Adjusted for isCompleted
-                completionStatusMatch = true;
-            }
+            // REMOVED: completionStatusMatch logic
+            // let completionStatusMatch = false;
+            // if (this.filterCompletion === "all") {
+            //     completionStatusMatch = true;
+            // } else if (this.filterCompletion === "notStarted" && !task.isCompleted) { // Adjusted for isCompleted
+            //     completionStatusMatch = true;
+            // } else if (this.filterCompletion === "inProgress") {
+            //     // "In Progress" is mapped to "not completed"
+            //     completionStatusMatch = !task.isCompleted;
+            // } else if (this.filterCompletion === "completed" && task.isCompleted) { // Adjusted for isCompleted
+            //     completionStatusMatch = true;
+            // }
 
             // NEW: Filter for hidden tasks
             const hiddenMatch = this.showHiddenTasks || !task.hidden; // If showHidden is true, always match. Otherwise, only match if task is not hidden.
 
-            return keywordMatch && priorityMatch && filePathMatch && completionStatusMatch && hiddenMatch; // Added hiddenMatch
+            return keywordMatch && priorityMatch && filePathMatch && hiddenMatch; // Removed completionStatusMatch
         });
         // After filtering, sort the results before rendering.
         this.sortAndRenderTasks();
@@ -280,17 +262,6 @@ export class TaskReportView extends ItemView {
      * This is the primary method for initially loading or refreshing task data.
      */
     async loadAndDisplayTasks() {
-        // NEW: Update reference date display
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
-        if (this.overdueReferenceDateEl) { // Ensure element exists
-            this.overdueReferenceDateEl.setText(`Reference date for overdue calculation: ${formattedDate}`);
-        }
-
         this.tasks = []; // Clear the master list before reloading
         const markdownFiles = this.app.vault.getMarkdownFiles();
 
@@ -350,14 +321,14 @@ export class TaskReportView extends ItemView {
         // Create all table headers
         headerRow.empty(); // Clear existing headers to redefine order
 
-        createSortableHeader("Status", "isCompleted"); // Sorts by isCompleted
-        headerRow.insertCell().setText("Overdue"); // Non-sortable for now
+        createSortableHeader("Status", "isCompleted");
+        createSortableHeader("File", "filePath");
         createSortableHeader("Summary", "description");
         createSortableHeader("Detailed Desc.", "detailedDescription");
         createSortableHeader("Due Date", "dueDate");
         createSortableHeader("Priority", "priority");
         createSortableHeader("Hidden", "hidden");
-        createSortableHeader("File", "filePath");
+        // "Overdue" TH IS REMOVED
 
         // Table Body: Iterates over `this.displayedTasks` (which are already filtered and sorted).
         const tbody = table.createTBody();
@@ -388,21 +359,30 @@ export class TaskReportView extends ItemView {
             }
             // --- End of MODIFIED Row Styling Logic ---
 
-            // Status Cell
+            // 1. Status Cell (checkbox)
             const statusCell = row.insertCell();
-            statusCell.empty(); // Clear any previous content (like text)
+            statusCell.empty();
             const statusCheckbox = statusCell.createEl('input', { type: 'checkbox' });
             statusCheckbox.checked = task.isCompleted;
-
             statusCheckbox.onchange = async () => {
                 await this.handleTaskUpdate(task.id, 'isCompleted', statusCheckbox.checked);
             };
 
-            // "Overdue" Text Cell (uses the 'isOverdue' variable calculated above)
-            const overdueCell = row.insertCell();
-            overdueCell.setText(isOverdue ? "Y" : "N");
+            // 2. File Cell (link)
+            const fileCell = row.insertCell();
+            const fileLink = fileCell.createEl('a', {
+                text: task.filePath,
+                href: '#',
+            });
+            fileLink.onclick = (event) => {
+                event.preventDefault();
+                this.app.workspace.openLinkText(task.filePath, task.filePath, false, {
+                    state: { line: task.lineNumber }
+                });
+            };
+            // "Overdue" Y/N Cell is REMOVED (was here in previous logic)
 
-            // Summary (existing description) Cell - Editable
+            // 3. Summary Cell (editable text)
             const summaryCell = row.insertCell();
             this.createEditableDescriptionCell(summaryCell, task);
 
@@ -482,19 +462,7 @@ export class TaskReportView extends ItemView {
                 await this.handleTaskUpdate(task.id, 'hidden', !task.hidden);
             };
 
-            // Make file clickable
-            const fileCell = row.insertCell();
-            const fileLink = fileCell.createEl('a', {
-                text: task.filePath,
-                href: '#', // Prevent navigation
-            });
-            fileLink.onclick = (event) => {
-                event.preventDefault();
-                this.app.workspace.openLinkText(task.filePath, task.filePath, false, {
-                    state: { line: task.lineNumber }
-                });
-            };
-            // row.insertCell().setText(String(task.lineNumber));
+            // Make file clickable is now part of cell 2. No separate fileCell at the end.
         }
     }
 
