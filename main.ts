@@ -461,29 +461,50 @@ export class TaskReportView extends ItemView {
      * @param task The TaskItem associated with this row.
      */
     private createEditablePriorityCell(cell: HTMLElement, task: TaskItem) {
-        cell.empty();
-        const priorityText = String(task.priority); // Display numerical priority
-        const displayEl = cell.createSpan({ text: priorityText, cls: "editable-text-span" });
-        // displayEl.style.cursor = "pointer"; // Handled by CSS
-        displayEl.title = "Click to change priority";
+        const displayPriority = () => { // Helper to render display mode
+            cell.empty();
+            const priorityText = String(task.priority);
+            const displayEl = cell.createSpan({ text: priorityText, cls: "editable-text-span" });
+            displayEl.title = "Click to edit priority";
 
-        displayEl.onclick = () => {
-            cell.empty(); // Clear the text display
-            const selectEl = cell.createEl("select");
-            selectEl.options.add(new Option("High", "1"));
-            selectEl.options.add(new Option("Medium", "2"));
-            selectEl.options.add(new Option("Low", "3"));
-            selectEl.value = String(task.priority); // Set current priority
+            displayEl.onclick = () => { // Switch to edit mode
+                cell.empty();
+                const inputEl = cell.createEl("input", { type: "number" });
+                inputEl.value = String(task.priority);
+                inputEl.style.width = "70px"; // Adjust width as needed
+                // inputEl.style.textAlign = "right"; // Optional: right-align numbers
 
-            // Save on blur (losing focus) or change
-            selectEl.onblur = async () => {
-                await this.handleTaskUpdate(task.id, 'priority', parseInt(selectEl.value, 10));
+                const saveValue = async () => {
+                    const newPriorityInt = parseInt(inputEl.value, 10);
+                    if (isNaN(newPriorityInt)) {
+                        new Notice("Priority must be a number.");
+                        displayPriority(); // Revert if not a number
+                        return;
+                    }
+                    if (newPriorityInt === task.priority) {
+                        displayPriority(); // Revert if no change
+                        return;
+                    }
+                    // Validation for range can be added here if desired (e.g. non-negative)
+                    // For now, any integer is allowed as per user request.
+                    await this.handleTaskUpdate(task.id, 'priority', newPriorityInt);
+                    // handleTaskUpdate will cause a refresh, which will re-render this cell in display mode.
+                };
+
+                inputEl.onblur = saveValue;
+                inputEl.onkeydown = (e) => {
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        displayPriority(); // Revert
+                    }
+                    // Enter key does nothing here, save is on blur
+                };
+                inputEl.focus();
+                inputEl.select();
             };
-            selectEl.onchange = async () => {
-                 await this.handleTaskUpdate(task.id, 'priority', parseInt(selectEl.value, 10));
-            };
-            selectEl.focus(); // Auto-focus the select element
         };
+
+        displayPriority(); // Initial render
     }
 
     /**
