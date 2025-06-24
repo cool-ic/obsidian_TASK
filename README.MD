@@ -39,9 +39,9 @@
 
 您可以使用以下格式在任何 Markdown 笔记中定义任务：
 
-```markdown
+\`\`\`markdown
 - [ ] 您的任务摘要 %%task-plugin:{"dueDate":"YYYY-MM-DD", "priority":N, "hidden":false, "detailedDescription":"更多详情..."}%%
-```
+\`\`\`
 
 说明：
 *   `- [ ]` 或 `- [x]` 是标准的 Markdown 任务语法，直接表明任务是待处理还是已完成。
@@ -56,12 +56,12 @@
 *   `"detailedDescription":"text"` (JSON 属性, 可选, 未指定时默认为空): 用于记录关于任务的更长、可能多行的笔记。例如：`"detailedDescription":"更进一步的笔记和上下文。"`。
 
 **示例:**
-```markdown
+\`\`\`markdown
 - [x] 完成项目 Alpha 设置 %%task-plugin:{"dueDate":"2024-07-01", "priority":1, "detailedDescription":"初始服务器配置和仓库创建。"}%%
 - [ ] 每周回顾 %%task-plugin:{"priority":2, "hidden":true}%%
 - [ ] 跟进 Jane %%task-plugin:{"dueDate":"2024-07-05", "detailedDescription":"讨论第三季度预算。"}%%
 - [ ] 没有额外元数据的简单任务
-```
+\`\`\`
 (注意: `hidden:false` 和空的 `detailedDescription` 可以从 JSON 中省略以保持简洁，因为它们是默认值。)
 
 ### 2. 通过命令插入任务
@@ -103,14 +103,14 @@
 ## 安装和开发 (使用 Makefile)
 
 1.  **克隆仓库:**
-    ```bash
+    \`\`\`bash
     git clone <repository-url>
     cd obsidian-task-manager
-    ```
+    \`\`\`
 2.  **安装依赖:**
-    ```bash
+    \`\`\`bash
     npm install
-    ```
+    \`\`\`
 3.  **配置 Vault 路径:**
     *   在文本编辑器中打开 `Makefile`。
     *   找到 `OBSIDIAN_VAULT_PATH :=` 这一行。
@@ -119,13 +119,13 @@
         *   示例 (Windows): `OBSIDIAN_VAULT_PATH := C:/Users/yourname/Documents/MyVault` (使用正斜杠)
 4.  **构建和安装:**
     *   构建插件:
-        ```bash
+        \`\`\`bash
         make build
-        ```
+        \`\`\`
     *   构建并安装到您配置的库中:
-        ```bash
+        \`\`\`bash
         make install
-        ```
+        \`\`\`
 5.  **在 Obsidian 中启用:**
     *   打开 Obsidian。
     *   进入 `设置` -> `社区插件`。
@@ -182,9 +182,9 @@ This plugin provides enhanced task management capabilities within Obsidian, allo
 
 You can define a task in any Markdown note using the following format:
 
-```markdown
+\`\`\`markdown
 - [ ] Your task summary %%task-plugin:{"dueDate":"YYYY-MM-DD", "priority":N, "hidden":false, "detailedDescription":"More details..."}%%
-```
+\`\`\`
 
 Where:
 *   `- [ ]` or `- [x]` is the standard Markdown task syntax, directly indicating if the task is pending or completed.
@@ -199,12 +199,12 @@ Where:
 *   `"detailedDescription":"text"` (JSON property, Optional, defaults to empty when not specified): For longer, multi-line notes about the task (e.g., `"detailedDescription":"Further notes and context."`).
 
 **Example:**
-```markdown
+\`\`\`markdown
 - [x] Project Alpha setup %%task-plugin:{"dueDate":"2024-07-01", "priority":1, "detailedDescription":"Initial server configuration and repo creation."}%%
 - [ ] Weekly review %%task-plugin:{"priority":2, "hidden":true}%%
 - [ ] Follow up with Jane %%task-plugin:{"dueDate":"2024-07-05", "detailedDescription":"Discuss Q3 budget."}%%
 - [ ] Simple task with no extra metadata
-```
+\`\`\`
 (Note: `hidden:false` and empty `detailedDescription` can be omitted from the JSON for brevity as they are defaults.)
 
 ### 2. Inserting Tasks via Command
@@ -246,14 +246,14 @@ Where:
 ## Installation and Development (Using Makefile)
 
 1.  **Clone the Repository:**
-    ```bash
+    \`\`\`bash
     git clone <repository-url>
     cd obsidian-task-manager
-    ```
+    \`\`\`
 2.  **Install Dependencies:**
-    ```bash
+    \`\`\`bash
     npm install
-    ```
+    \`\`\`
 3.  **Configure Vault Path:**
     *   Open the `Makefile` in a text editor.
     *   Locate the line `OBSIDIAN_VAULT_PATH :=`.
@@ -262,13 +262,13 @@ Where:
         *   Example (Windows): `OBSIDIAN_VAULT_PATH := C:/Users/yourname/Documents/MyVault` (use forward slashes)
 4.  **Build and Install:**
     *   To build the plugin:
-        ```bash
+        \`\`\`bash
         make build
-        ```
+        \`\`\`
     *   To build and install into your configured vault:
-        ```bash
+        \`\`\`bash
         make install
-        ```
+        \`\`\`
 5.  **Enable in Obsidian:**
     *   Open Obsidian.
     *   Go to `Settings` -> `Community plugins`.

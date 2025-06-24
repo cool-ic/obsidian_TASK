@@ -5,16 +5,6 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 export const TASK_REPORT_VIEW_TYPE = "task-manager-report";
 export const TASK_REPORT_DISPLAY_TEXT = "Task Report";
 
-// Priority to Text mapping
-function getPriorityText(priority: number): string {
-    switch (priority) {
-        case 1: return "High";
-        case 2: return "Medium";
-        case 3: return "Low";
-        default: return "Unknown";
-    }
-}
-
 /**
  * Custom ItemView for displaying tasks in a sortable and filterable table.
  * This view allows users to see all tasks from their vault, interact with them (edit priority/completion),
@@ -426,14 +416,12 @@ export class TaskReportView extends ItemView {
                     };
 
                     textArea.onkeydown = (e) => {
-                        // Allow Shift+Enter for newlines in textarea
-                        if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            saveValue();
-                        } else if (e.key === "Escape") {
+                        if (e.key === "Escape") {
                             e.preventDefault();
                             displayFullDescription(); // Revert to display
                         }
+                        // Enter key (with or without Shift) now defaults to inserting a newline.
+                        // No explicit save on Enter.
                     };
                     textArea.focus();
                 };
@@ -474,7 +462,7 @@ export class TaskReportView extends ItemView {
      */
     private createEditablePriorityCell(cell: HTMLElement, task: TaskItem) {
         cell.empty();
-        const priorityText = getPriorityText(task.priority); // Helper to convert 1,2,3 to High,Medium,Low
+        const priorityText = String(task.priority); // Display numerical priority
         const displayEl = cell.createSpan({ text: priorityText, cls: "editable-text-span" });
         // displayEl.style.cursor = "pointer"; // Handled by CSS
         displayEl.title = "Click to change priority";
@@ -564,13 +552,11 @@ export class TaskReportView extends ItemView {
 
             inputEl.onblur = saveValue;
             inputEl.onkeydown = (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveValue();
-                } else if (e.key === "Escape") {
+                if (e.key === "Escape") {
                     e.preventDefault();
                     this.createEditableDescriptionCell(cell, task); // Revert
                 }
+                // Enter key no longer saves here
             };
             inputEl.focus();
             inputEl.select();
@@ -612,13 +598,11 @@ export class TaskReportView extends ItemView {
 
             inputEl.onblur = saveValue;
             inputEl.onkeydown = (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveValue();
-                } else if (e.key === "Escape") {
+                if (e.key === "Escape") {
                     e.preventDefault();
                     this.createEditableDueDateCell(cell, task); // Revert
                 }
+                // Enter key no longer saves here
             };
             inputEl.focus();
             inputEl.select();
